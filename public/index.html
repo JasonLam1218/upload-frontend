@@ -4,44 +4,80 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Upload Academic Documents</title>
-    
-    <!-- CSS Files with correct paths -->
     <link rel="stylesheet" href="/css/main.css">
     <link rel="stylesheet" href="/css/components.css">
     <link rel="stylesheet" href="/css/responsive.css">
 </head>
 <body>
     <div class="container">
-        <h1>Upload Academic Documents</h1>
-        
-        <form id="upload-form">
-            <div class="upload-area">
-                <input type="file" id="file-input" accept=".pdf,.zip" required>
-                <label for="file-input">
-                    <p>Click to select PDF or ZIP file</p>
-                    <p class="hint">Maximum file size: 50MB</p>
-                </label>
-            </div>
-            
-            <input type="text" id="topic-input" placeholder="Enter topic (e.g., AI and Machine Learning)" required>
-            <button type="submit" id="upload-btn">Upload and Process</button>
-        </form>
+        <header>
+            <h1>Upload Academic Documents</h1>
+            <p>Select your PDF or ZIP file and specify the topic for processing</p>
+        </header>
 
-        <div id="status-section" style="display: none;">
-            <h2>Processing Status</h2>
-            <div id="progress-bar">
-                <div id="progress-fill"></div>
-            </div>
-            <div id="status-message"></div>
-        </div>
+        <main>
+            <form id="uploadForm" class="upload-form" enctype="multipart/form-data">
+                <div class="form-group">
+                    <label for="file-input" class="form-label">
+                        Select File:
+                        <span class="required">*</span>
+                    </label>
+                    <input type="file" 
+                           id="file-input" 
+                           name="file" 
+                           class="file-input"
+                           accept=".pdf,.zip" 
+                           required 
+                           aria-describedby="file-help">
+                    <div id="file-help" class="form-help">
+                        Accepted formats: PDF, ZIP (Max: 50MB)
+                    </div>
+                    <div id="file-info" class="file-info" style="display: none;"></div>
+                </div>
 
-        <div id="results-section" style="display: none;">
-            <h2>Download Results</h2>
-            <div id="download-links"></div>
-        </div>
+                <div class="form-group">
+                    <label for="topic-input" class="form-label">
+                        Topic:
+                        <span class="required">*</span>
+                    </label>
+                    <input type="text" 
+                           id="topic-input" 
+                           name="topic" 
+                           class="text-input"
+                           placeholder="e.g., Neural Networks and Deep Learning" 
+                           maxlength="100"
+                           required
+                           aria-describedby="topic-help">
+                    <div id="topic-help" class="form-help">
+                        Enter the main topic or subject of your document
+                    </div>
+                </div>
+
+                <button type="submit" id="upload-btn" class="btn btn-primary">
+                    <span class="btn-text">Upload and Process</span>
+                    <span class="btn-loader" style="display: none;">Processing...</span>
+                </button>
+            </form>
+
+            <div id="progress-container" class="progress-container" style="display: none;">
+                <div class="progress-bar">
+                    <div id="progress-fill" class="progress-fill"></div>
+                </div>
+                <div id="progress-text" class="progress-text">0%</div>
+            </div>
+
+            <div id="status" class="status" style="display: none;">
+                <div id="status-icon" class="status-icon"></div>
+                <div id="status-message" class="status-message"></div>
+            </div>
+
+            <div id="results" class="results" style="display: none;">
+                <h3>Processing Complete!</h3>
+                <div id="download-links" class="download-links"></div>
+            </div>
+        </main>
     </div>
 
-    <!-- JavaScript Files with correct paths -->
     <script src="/js/utils.js"></script>
     <script src="/js/upload.js"></script>
     <script src="/js/main.js"></script>

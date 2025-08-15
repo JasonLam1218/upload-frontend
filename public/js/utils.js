@@ -161,15 +161,38 @@ const Utils = {
     },
   
     // NEW: API health check
+    // Enhanced health check with better error handling
     checkServerHealth: async function() {
       try {
-        const response = await fetch('/api/health');
-        const health = await response.json();
-        return health;
+          const response = await fetch('/api/health');
+          
+          if (!response.ok) {
+              throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          }
+          
+          const contentType = response.headers.get('content-type');
+          if (!contentType || !contentType.includes('application/json')) {
+              throw new Error('Server returned non-JSON response');
+          }
+          
+          const health = await response.json();
+          console.log('✅ Server health check passed:', health);
+          
+          // Show service status
+          if (health.services?.blob_storage === 'unavailable') {
+              this.showNotification('Blob storage unavailable - using fallback', 'warning');
+          }
+          
+          return health;
       } catch (error) {
-        console.error('Health check failed:', error);
-        return { status: 'unhealthy', error: error.message };
+          console.error('❌ Health check failed:', error);
+          this.showNotification(`Server connection issue: ${error.message}`, 'error');
+          return { status: 'unhealthy', error: error.message };
       }
+
+      console.error('❌ All health check endpoints failed');
+      this.showNotification('Server connection failed - all endpoints unreachable', 'error');
+      return { status: 'unhealthy', error: 'All endpoints failed' };
     }
   };
   
