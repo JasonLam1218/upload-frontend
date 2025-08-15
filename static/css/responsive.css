@@ -1,0 +1,129 @@
+/* Responsive design */
+
+@media (max-width: 768px) {
+    body {
+        padding: 10px;
+    }
+    
+    .container {
+        margin: 10px;
+        padding: 20px;
+    }
+    
+    h1 {
+        font-size: 1.5rem;
+    }
+    
+    .upload-area {
+        padding: 20px;
+    }
+    
+    #upload-btn {
+        padding: 15px;
+        font-size: 18px;
+    }
+    
+    .file-info {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 5px;
+    }
+}
+
+@media (max-width: 480px) {
+    body {
+        padding: 5px;
+    }
+    
+    .container {
+        padding: 15px;
+        border-radius: 4px;
+    }
+    
+    h1 {
+        font-size: 1.3rem;
+        margin-bottom: 20px;
+    }
+    
+    .upload-area {
+        padding: 15px;
+    }
+    
+    .download-link {
+        display: block;
+        margin: 10px 0;
+        text-align: center;
+    }
+    
+    #topic-input {
+        font-size: 16px; /* Prevents zoom on iOS */
+    }
+}
+
+/* High DPI displays */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 2dppx) {
+    .upload-area {
+        border-width: 1px;
+    }
+}
+
+/* Print styles */
+@media print {
+    body {
+        background: white;
+    }
+    
+    .container {
+        box-shadow: none;
+        border: 1px solid #ddd;
+    }
+    
+    #upload-btn, .download-link {
+        background: #333 !important;
+        color: white !important;
+    }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+    body {
+        background-color: #121212;
+        color: #e0e0e0;
+    }
+    
+    .container {
+        background: #1e1e1e;
+        color: #e0e0e0;
+    }
+    
+    .upload-area {
+        border-color: #444;
+        background-color: rgba(255,255,255,0.05);
+    }
+    
+    .upload-area:hover {
+        border-color: #007bff;
+        background-color: rgba(0,123,255,0.1);
+    }
+    
+    #topic-input {
+        background: #2d2d2d;
+        border-color: #444;
+        color: #e0e0e0;
+    }
+    
+    #status-message {
+        background-color: rgba(33,150,243,0.1);
+        border-left-color: #2196f3;
+        color: #64b5f6;
+    }
+}
+
+/* Reduced motion accessibility */
+@media (prefers-reduced-motion: reduce) {
+    * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
