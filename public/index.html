@@ -3,55 +3,47 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Academic Document Upload</title>
-    <!-- CSS from static directory -->
-    <link rel="stylesheet" href="./static/css/main.css">
-    <link rel="stylesheet" href="./static/css/components.css">
-    <link rel="stylesheet" href="./static/css/responsive.css">
+    <title>Upload Academic Documents</title>
+    
+    <!-- CSS Files with correct paths -->
+    <link rel="stylesheet" href="/css/main.css">
+    <link rel="stylesheet" href="/css/components.css">
+    <link rel="stylesheet" href="/css/responsive.css">
 </head>
 <body>
     <div class="container">
         <h1>Upload Academic Documents</h1>
         
-        <!-- Upload Form -->
-        <div id="upload-section">
-            <form id="upload-form" enctype="multipart/form-data">
-                <div class="upload-area">
-                    <input type="file" id="file-input" name="file" accept=".pdf,.zip" required>
-                    <label for="file-input">
-                        <p>Click to select PDF or ZIP file</p>
-                        <p class="hint">Maximum file size: 10MB</p>
-                    </label>
-                </div>
-                
-                <input type="text" id="topic-input" name="topic" placeholder="Enter topic (e.g., AI and Data Analytics)" required>
-                
-                <button type="submit" id="upload-btn">Upload and Process</button>
-            </form>
-        </div>
+        <form id="upload-form">
+            <div class="upload-area">
+                <input type="file" id="file-input" accept=".pdf,.zip" required>
+                <label for="file-input">
+                    <p>Click to select PDF or ZIP file</p>
+                    <p class="hint">Maximum file size: 50MB</p>
+                </label>
+            </div>
+            
+            <input type="text" id="topic-input" placeholder="Enter topic (e.g., AI and Machine Learning)" required>
+            <button type="submit" id="upload-btn">Upload and Process</button>
+        </form>
 
-        <!-- Status Section -->
         <div id="status-section" style="display: none;">
             <h2>Processing Status</h2>
-            <div id="status-message">Processing your document...</div>
             <div id="progress-bar">
                 <div id="progress-fill"></div>
             </div>
+            <div id="status-message"></div>
         </div>
 
-        <!-- Results Section -->
         <div id="results-section" style="display: none;">
-            <h2>Generated Papers</h2>
+            <h2>Download Results</h2>
             <div id="download-links"></div>
         </div>
     </div>
 
-    <!-- JavaScript from static directory -->
-    <script src="{% static 'js/utils.js' %}"></script>
-    <script src="{% static 'js/upload.js' %}"></script>
-    <script src="{% static 'js/main.js' %}"></script>
-    <!-- <script src="/static/js/utils.js"></script>
-    <script src="/static/js/upload.js"></script>
-    <script src="/static/js/main.js"></script> -->
+    <!-- JavaScript Files with correct paths -->
+    <script src="/js/utils.js"></script>
+    <script src="/js/upload.js"></script>
+    <script src="/js/main.js"></script>
 </body>
 </html>
