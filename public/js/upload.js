@@ -60,26 +60,26 @@ const Upload = {
         this.updateUploadButton(true);
         Utils.showElement('status-section');
         Utils.hideElement('results-section');
-        
-        Utils.updateContent('status-message', 'Uploading to Vercel Blob Storage...');
-  
+
+        // Set initial progress bar state before the actual fetch call
+        Utils.updateContent('status-message', 'Initiating upload...');
+        document.getElementById('progress-fill').style.width = '0%';
+        Utils.updateContent('progress-text', '0%'); // Initialize progress text to 0%
+
         const response = await fetch('/api/upload', {
           method: 'POST',
           body: formData
         });
-  
+
         const result = await response.json();
-  
+
         if (result.success) {
           this.currentJobId = result.jobId;
-          
-          // Show detailed upload success
-          Utils.updateContent('status-message', 
-            `✅ File uploaded successfully to Vercel Blob Storage!\n📎 Blob URL: ${result.blobUrl}\n🟢 Processing started...`
-          );
-          
-          Utils.showNotification('File uploaded to Vercel Blob Storage!', 'success');
-          
+
+          // The first status check will then pick up the 10% from the server
+          // for 'Uploading to Vercel Blob Storage...'.
+          Utils.showNotification('File submitted for processing!', 'success'); // Changed from 'uploaded' as it's just submitted
+
           // Log upload details
           console.log('📤 Upload Success Details:', {
             jobId: result.jobId,
@@ -87,21 +87,24 @@ const Upload = {
             blobUrl: result.blobUrl,
             uploadDetails: result.uploadDetails
           });
-  
+
           // Save to upload history
           this.saveUploadHistory(result.jobId, formData.get('file').name, formData.get('topic'));
-          
+
           // Start status checking
           this.checkStatus();
-          
+
         } else {
           throw new Error(result.error || 'Upload failed');
         }
-  
+
       } catch (error) {
         console.error('❌ Upload error:', error);
         Utils.updateContent('status-message', `❌ Upload failed: ${error.message}`);
         Utils.showNotification(`Upload failed: ${error.message}`, 'error');
+        // On error, reset progress bar
+        document.getElementById('progress-fill').style.width = '0%';
+        Utils.updateContent('progress-text', 'Error'); // Update text on error
       } finally {
         this.uploadInProgress = false;
         this.updateUploadButton(false);
@@ -111,39 +114,45 @@ const Upload = {
     // Check processing status
     checkStatus: async function() {
       if (!this.currentJobId) return;
-  
+
       try {
         const response = await fetch(`/api/status?jobId=${this.currentJobId}`);
         const status = await response.json();
-  
+
         console.log('📊 Status update:', status);
-  
+
         if (status.completed) {
           Utils.updateContent('status-message', 'Processing completed successfully!');
           document.getElementById('progress-fill').style.width = '100%';
+          Utils.updateContent('progress-text', '100%'); // ADD THIS LINE: Update progress text to 100%
           Utils.showNotification('Processing completed!', 'success');
           this.showResults(status.files, status.examId);
           this.currentJobId = null;
-          
+
         } else if (status.error) {
           Utils.updateContent('status-message', 'Processing failed: ' + status.error);
           Utils.showNotification('Processing failed: ' + status.error, 'error');
+          document.getElementById('progress-fill').style.width = '0%'; // Reset on error
+          Utils.updateContent('progress-text', 'Error'); // ADD THIS LINE: Update progress text on error
           this.currentJobId = null;
-          
+
         } else {
           // Update progress
           const progress = status.progress || 0;
           Utils.updateContent('status-message', status.message || 'Processing...');
           document.getElementById('progress-fill').style.width = progress + '%';
-          
+          Utils.updateContent('progress-text', `${progress}%`); // ADD THIS LINE: Update progress text with current percentage
+
           // Continue checking
           setTimeout(() => this.checkStatus(), 2000);
         }
-  
+
       } catch (error) {
         console.error('❌ Status check error:', error);
         Utils.updateContent('status-message', 'Status check failed: ' + error.message);
         Utils.showNotification('Status check failed', 'error');
+        document.getElementById('progress-fill').style.width = '0%'; // Reset on error
+        Utils.updateContent('progress-text', 'Error'); // ADD THIS LINE: Update progress text on status check error
         this.currentJobId = null;
       }
     },
