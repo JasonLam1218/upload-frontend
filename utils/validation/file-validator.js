@@ -1,12 +1,14 @@
+// START OF FILE file-validator.js
+
 class FileValidator {
   static validateFile(file) {
     const allowedTypes = [
       'application/pdf',
-      'application/zip', 
+      'application/zip',
       'application/x-zip-compressed',
       'application/x-zip'
     ];
-    
+
     const maxSize = 50 * 1024 * 1024; // 50MB for Vercel Blob
     const minSize = 1024; // 1KB minimum
 
@@ -27,7 +29,7 @@ class FileValidator {
     if (file.size > maxSize) {
       return {
         valid: false,
-        error: `File size must be less than ${this.formatFileSize(maxSize)}`
+        error: `File size must be less than or equal to ${this.formatFileSize(maxSize)}` // Clarified message
       };
     }
 
@@ -42,7 +44,7 @@ class FileValidator {
     if (!this.isValidFilename(file.originalname || file.name)) {
       return {
         valid: false,
-        error: 'Invalid filename. Use only letters, numbers, dots, hyphens and underscores'
+        error: 'Invalid filename. Use only letters, numbers, dots, hyphens, underscores, and spaces' // Clarified message
       };
     }
 
