@@ -59,19 +59,21 @@
                 </button>
             </form>
 
-            <div id="progress-container" class="progress-container" style="display: none;">
-                <div class="progress-bar">
+            <!-- Status and Progress Section - Now wrapped with id="status-section" -->
+            <div id="status-section" class="status-section" style="display: none;">
+                <div id="progress-container" class="progress-container">
                     <div id="progress-fill" class="progress-fill"></div>
                 </div>
                 <div id="progress-text" class="progress-text">0%</div>
+
+                <div id="status" class="status">
+                    <div id="status-icon" class="status-icon"></div>
+                    <div id="status-message" class="status-message"></div>
+                </div>
             </div>
 
-            <div id="status" class="status" style="display: none;">
-                <div id="status-icon" class="status-icon"></div>
-                <div id="status-message" class="status-message"></div>
-            </div>
-
-            <div id="results" class="results" style="display: none;">
+            <!-- Results Section - Now wrapped with id="results-section" -->
+            <div id="results-section" class="results-section" style="display: none;">
                 <h3>Processing Complete!</h3>
                 <div id="download-links" class="download-links"></div>
             </div>

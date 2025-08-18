@@ -4,6 +4,8 @@ const path = require('path');
 const cors = require('cors');
 require('dotenv').config();
 
+console.log('DEBUG: process.env.BLOB_READ_WRITE_TOKEN value:', process.env.BLOB_READ_WRITE_TOKEN ? '*** TOKEN IS PRESENT ***' : '--- TOKEN IS MISSING ---');
+
 const VercelBlobService = require('../config/vercel/blob-config');
 const BackendClient = require('../lib/api/backend-client');
 const FileValidator = require('../utils/validation/file-validator');

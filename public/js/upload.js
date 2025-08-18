@@ -5,16 +5,21 @@ const Upload = {
   
     // Initialize upload functionality
     init: function() {
-      const uploadForm = document.getElementById('upload-form');
+      const uploadForm = document.getElementById('uploadForm');
       if (uploadForm) {
+        console.log('✅ [DEBUG] uploadForm found. Attaching submit listener.'); // ADD THIS LINE
         uploadForm.addEventListener('submit', this.handleSubmit.bind(this));
+      } else {
+        console.error('❌ [DEBUG] uploadForm (ID: "uploadForm") not found in the DOM. Submit listener NOT attached.'); // ADD THIS LINE
       }
       this.loadUploadHistory();
     },
   
     // Handle form submission
     handleSubmit: async function(e) {
+      console.log('🔗 [DEBUG] handleSubmit triggered!'); // ADD THIS LINE
       e.preventDefault();
+      console.log('🛑 [DEBUG] Default form submission prevented.'); // ADD THIS LINE
       
       if (this.uploadInProgress) {
         Utils.showNotification('Upload already in progress', 'warning');

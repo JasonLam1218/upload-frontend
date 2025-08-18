@@ -3,7 +3,8 @@ const router = express.Router();
 const jobQueue = require('../lib/job-queue');
 const BackendClient = require('../lib/api/backend-client');
 
-const backendClient = new BackendClient();
+// Initialize backendClient. This will be null if BACKEND_API_URL is not set in Vercel env.
+const backendClient = new BackendClient(); 
 
 // Status endpoint - Integrated with job queue and backend
 router.get('/', async (req, res) => {
@@ -24,8 +25,8 @@ router.get('/', async (req, res) => {
 
     console.log(`📊 Status check for job: ${jobId} (current status: ${job.status})`);
 
-    // If we have a backend job ID, check backend status
-    if (job.data?.backendJobId) {
+    // MODIFICATION START: Add check for `backendClient` before calling its methods
+    if (job.data?.backendJobId && backendClient) { 
       try {
         console.log(`🔍 Checking backend status for: ${job.data.backendJobId}`);
         const backendStatus = await backendClient.getStatus(job.data.backendJobId);
@@ -84,10 +85,16 @@ router.get('/', async (req, res) => {
         console.error('❌ Backend status check failed:', backendError);
         // Fall back to local job status
         console.log('⚠️ Falling back to local job status');
+        // Execution will continue to the local job status return below
       }
+    } else if (job.data?.backendJobId && !backendClient) { 
+        // This log helps debug if backendJobId exists but backendClient is null
+        console.warn('⚠️ Backend client not available, but backendJobId exists. Proceeding with local status.');
     }
+    // MODIFICATION END
 
-    // Return local job status
+    // Return local job status (this will be returned if no backendJobId, 
+    // or if backendClient is null, or if backend check failed)
     res.json({
       jobId: job.id,
       status: job.status,
@@ -97,11 +104,11 @@ router.get('/', async (req, res) => {
       message: job.message,
       files: job.result?.files || [],
       duration: Date.now() - job.createdAt,
-      source: 'local'
+      source: 'local' // Indicate that status is from local job queue
     });
 
   } catch (error) {
-    console.error('❌ Status check error:', error);
+    console.error('❌ Status check error (top-level):', error); 
     res.status(500).json({ error: error.message });
   }
 });
