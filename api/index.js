@@ -1,3 +1,5 @@
+// --- START OF FILE index.js ---
+
 const express = require('express');
 const multer = require('multer');
 const path = require('path');
@@ -11,9 +13,9 @@ const BackendClient = require('../lib/api/backend-client');
 const FileValidator = require('../utils/validation/file-validator');
 const jobQueue = require('../lib/job-queue');
 
-// Import route modules
-const downloadRoutes = require('./download');
-const statusRoutes = require('./status');
+// Import route modules - NOW THEY ARE FUNCTIONS
+// const downloadRoutes = require('./download'); // REMOVE THIS LINE
+// const statusRoutes = require('./status');     // REMOVE THIS LINE
 
 const app = express();
 
@@ -63,12 +65,16 @@ try {
         console.log('✅ Backend client initialized successfully');
     } else {
         console.warn('⚠️ BACKEND_API_URL not found - backend client disabled');
-        backendClient = null;
+        backendClient = null; // Correctly sets backendClient to null
     }
 } catch (error) {
     console.error('❌ Service initialization error:', error.message);
     console.warn('⚠️ Service initialization warning:', error.message);
 }
+
+// NOW, import route modules as functions and pass the backendClient
+const downloadRoutes = require('./download')(backendClient); // Pass backendClient
+const statusRoutes = require('./status')(backendClient);     // Pass backendClient
 
 // Enhanced middleware configuration for serverless
 app.use(cors({
@@ -336,7 +342,7 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
 
         // Try backend processing integration
         let processingResult = { job_id: `fallback_${jobId}` };
-        if (backendClient) {
+        if (backendClient) { // This backendClient is correctly null if BACKEND_API_URL is missing
             try {
                 jobQueue.updateJob(jobId, {
                     status: 'processing',
@@ -431,7 +437,7 @@ app.get('/api/exams', async (req, res) => {
     try {
         console.log('📋 Listing exams...');
         
-        if (!backendClient) {
+        if (!backendClient) { // Use the correctly initialized backendClient
             console.log('ℹ️ Backend client not configured, returning empty list');
             return res.json([]);
         }
@@ -538,3 +544,4 @@ app.use((req, res) => {
 
 // **IMPORTANT: Export for serverless - DO NOT use app.listen()**
 module.exports = app;
+// --- END OF FILE index.js ---
