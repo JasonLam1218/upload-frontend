@@ -9,15 +9,34 @@ class VercelBlobService {
   }
 
   async uploadFile(file, filename) {
-    try {
-      const { url } = await put(filename, file, {
-        access: 'public',
-        token: this.token,
+      console.log(`📤 Starting Vercel Blob upload:`, {
+          filename,
+          fileSize: file.length || file.byteLength || 'unknown',
+          tokenPresent: !!this.token
       });
-      return { success: true, url, filename };
-    } catch (error) {
-      throw new Error(`Blob upload failed: ${error.message}`);
-    }
+
+      try {
+          const result = await put(filename, file, {
+              access: 'public',
+              token: this.token,
+          });
+          
+          console.log('✅ Vercel Blob upload successful:', {
+              url: result.url,
+              pathname: result.pathname,
+              size: result.size
+          });
+          
+          return { success: true, url: result.url, filename };
+      } catch (error) {
+          console.error('❌ Vercel Blob upload failed:', {
+              error: error.message,
+              code: error.code,
+              status: error.status,
+              filename
+          });
+          throw new Error(`Blob upload failed: ${error.message}`);
+      }
   }
 
   async deleteFile(url) {

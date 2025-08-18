@@ -42,7 +42,7 @@ const Upload = {
       }
   
       const formData = new FormData();
-      formData.append('file', fileInput.files);
+      formData.append('file', fileInput.files[0]);
       formData.append('topic', topicInput.value.trim());
   
       await this.uploadFile(formData);
