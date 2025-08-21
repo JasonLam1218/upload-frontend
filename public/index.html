@@ -80,9 +80,19 @@
                 <h3>Processing Complete!</h3>
                 <div id="download-links" class="download-links"></div>
             </div>
+
+            <!-- Exam History/Browse Section -->
+            <div id="exam-history-section" class="exam-history-section">
+                <h3>Browse Generated Exams</h3>
+                <ul id="exam-list" class="exam-list">
+                    <!-- Exam items will be loaded here by JavaScript -->
+                </ul>
+            </div>
         </main>
     </div>
 
+    <!-- NEW: Supabase client library from CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="/js/utils.js"></script>
     <script src="/js/upload.js"></script>
     <script src="/js/main.js"></script>

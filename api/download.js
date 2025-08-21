@@ -2,11 +2,9 @@
 
 const express = require('express');
 const router = express.Router();
-// const BackendClient = require('../lib/api/backend-client'); // REMOVE THIS LINE
 
 // Change module.exports to a function that takes backendClient
 module.exports = (backendClient) => { // Accept backendClient as an argument
-  // const backendClient = new BackendClient(); // REMOVE THIS LINE
   // This backendClient will now be the one passed from index.js, which is correctly null if BACKEND_API_URL is missing.
 
   // Download endpoint - Properly integrated with backend

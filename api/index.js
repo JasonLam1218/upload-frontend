@@ -4,7 +4,7 @@ const express = require('express');
 const multer = require('multer');
 const path = require('path');
 const cors = require('cors');
-require('dotenv').config();
+require('dotenv').config(); // Ensure dotenv is loaded to read .env file
 
 console.log('DEBUG: process.env.BLOB_READ_WRITE_TOKEN value:', process.env.BLOB_READ_WRITE_TOKEN ? '*** TOKEN IS PRESENT ***' : '--- TOKEN IS MISSING ---');
 
@@ -21,7 +21,7 @@ const app = express();
 
 // Enhanced environment validation with fallbacks for serverless
 function validateEnvironment() {
-    const required = ['BLOB_READ_WRITE_TOKEN', 'BACKEND_API_URL'];
+    const required = ['BLOB_READ_WRITE_TOKEN', 'BACKEND_API_URL', 'SUPABASE_URL', 'SUPABASE_ANON_KEY']; // Added Supabase variables
     const missing = required.filter(key => !process.env[key]);
 
     if (missing.length > 0) {
@@ -39,6 +39,9 @@ function validateEnvironment() {
     console.log('  - NODE_ENV:', process.env.NODE_ENV || 'development');
     console.log('  - BLOB_READ_WRITE_TOKEN:', process.env.BLOB_READ_WRITE_TOKEN ? 'Present' : 'Missing');
     console.log('  - BACKEND_API_URL:', process.env.BACKEND_API_URL ? 'Present' : 'Missing');
+    console.log('  - SUPABASE_URL:', process.env.SUPABASE_URL ? 'Present' : 'Missing'); // Log for debugging
+    console.log('  - SUPABASE_ANON_KEY:', process.env.SUPABASE_ANON_KEY ? 'Present' : 'Missing'); // Log for debugging
+
 
     console.log('✅ Environment validation complete');
 }
@@ -73,8 +76,8 @@ try {
 }
 
 // NOW, import route modules as functions and pass the backendClient
-const downloadRoutesInstance = downloadRoutes(backendClient); // Renamed to avoid conflict with `downloadRoutes` variable
-const statusRoutesInstance = statusRoutes(backendClient);     // Renamed to avoid conflict with `statusRoutes` variable
+const downloadRoutesInstance = downloadRoutes(backendClient);
+const statusRoutesInstance = statusRoutes(backendClient);
 
 // Enhanced middleware configuration for serverless
 app.use(cors({
@@ -82,7 +85,7 @@ app.use(cors({
         ? [
             'https://upload-frontend-phi.vercel.app',
             'https://www.upload-frontend-phi.vercel.app',
-            /\.vercel\.app$/  // Allow all vercel.app subdomains during testing
+            /\.vercel\.app$/
           ]
         : ['http://localhost:3000', 'http://127.0.0.1:3000'],
     credentials: true,
@@ -132,6 +135,27 @@ app.get('/api/blobs', async (req, res) => {
     }
 });
 
+// NEW: Endpoint to provide public frontend configurations (like Supabase credentials)
+app.get('/api/config', (req, res) => {
+    try {
+        // Only expose non-sensitive public keys/URLs
+        const config = {
+            SUPABASE_URL: process.env.SUPABASE_URL || null,
+            SUPABASE_ANON_KEY: process.env.SUPABASE_ANON_KEY || null,
+            // Add any other public frontend-facing env vars here
+        };
+        console.log('Serving frontend config:', {
+            supabaseUrlPresent: !!config.SUPABASE_URL,
+            supabaseAnonKeyPresent: !!config.SUPABASE_ANON_KEY
+        });
+        res.json(config);
+    } catch (error) {
+        console.error('Error serving config:', error);
+        res.status(500).json({ error: 'Failed to retrieve configuration' });
+    }
+});
+
+
 // **Enhanced Health check endpoint with detailed diagnostics**
 app.get('/api/health', (req, res) => {
     const health = {
@@ -154,6 +178,8 @@ app.get('/api/health', (req, res) => {
         env_vars: {
             blob_configured: !!process.env.BLOB_READ_WRITE_TOKEN,
             backend_configured: !!process.env.BACKEND_API_URL,
+            supabase_url_configured: !!process.env.SUPABASE_URL, // Added for health check
+            supabase_anon_key_configured: !!process.env.SUPABASE_ANON_KEY, // Added for health check
             node_env: process.env.NODE_ENV
         },
         system: {
@@ -178,8 +204,16 @@ app.get('/health', (req, res) => {
 });
 
 // API routes
-app.use('/api/download', downloadRoutesInstance); // Use the instance
-app.use('/api/status', statusRoutesInstance);     // Use the instance
+app.use('/api/download', downloadRoutesInstance);
+app.use('/api/status', statusRoutesInstance);
+
+// REMOVED: The /api/exams endpoint from the frontend server, as the client will now fetch directly from Supabase.
+// This block is now commented out or removed from your api/index.js
+/*
+app.get('/api/exams', async (req, res) => {
+    // ... (removed or commented out logic)
+});
+*/
 
 // Enhanced multer configuration for serverless
 const upload = multer({
@@ -206,16 +240,13 @@ const upload = multer({
     }
 });
 
-// **COMPLETELY REWRITTEN: Upload endpoint with proper error handling and no silent fallbacks**
-// Changed to upload.array('files') to handle multiple files
-app.post('/api/upload', upload.array('files'), async (req, res) => { // CHANGED FROM upload.single('file')
+app.post('/api/upload', upload.array('files'), async (req, res) => {
     console.log('=== UPLOAD REQUEST RECEIVED ===');
 
     try {
-        const files = req.files; // Now this is an array of files
+        const files = req.files;
         const topic = req.body.topic;
 
-        // Validate file presence (check if array is empty)
         if (!files || files.length === 0) {
             console.log('❌ No files uploaded');
             return res.status(400).json({
@@ -224,7 +255,6 @@ app.post('/api/upload', upload.array('files'), async (req, res) => { // CHANGED 
             });
         }
 
-        // Validate topic presence
         if (!topic?.trim()) {
             console.log('❌ No topic provided');
             return res.status(400).json({
@@ -235,35 +265,20 @@ app.post('/api/upload', upload.array('files'), async (req, res) => { // CHANGED 
 
         console.log(`📤 Processing upload for ${files.length} files with topic: ${topic.trim()}`);
 
-        // Create job for tracking the batch upload
-        const jobId = jobQueue.createJob('batch_upload_and_process', { // Changed type for clarity
+        const jobId = jobQueue.createJob('batch_upload_and_process', {
             files: files.map(f => ({ originalName: f.originalname, size: f.size, mimetype: f.mimetype })),
             topic: topic.trim()
         });
 
         console.log(`🆔 Created job ID: ${jobId}`);
 
-        // **CRITICAL: Require blob service for production - no silent fallbacks**
         if (!blobService) {
             const errorMsg = 'Blob service not configured - BLOB_READ_WRITE_TOKEN missing or invalid';
             console.error(`❌ ${errorMsg}`);
-
-            // Update job with error
-            jobQueue.updateJob(jobId, {
-                status: 'failed',
-                message: errorMsg,
-                progress: 0,
-                error: errorMsg
-            });
-
-            return res.status(500).json({
-                success: false,
-                error: errorMsg,
-                jobId: jobId
-            });
+            jobQueue.updateJob(jobId, { status: 'failed', message: errorMsg, progress: 0, error: errorMsg });
+            return res.status(500).json({ success: false, error: errorMsg, jobId: jobId });
         }
 
-        // Update job status - uploading
         jobQueue.updateJob(jobId, {
             status: 'uploading',
             message: `Uploading ${files.length} file(s) to Vercel Blob Storage...`,
@@ -273,18 +288,13 @@ app.post('/api/upload', upload.array('files'), async (req, res) => { // CHANGED 
         const blobUrls = [];
         const uploadedFileDetails = [];
 
-        // Loop through each file, upload to Vercel Blob, and collect URLs
         for (const file of files) {
             console.log(`📤 Starting Vercel Blob upload for: ${file.originalname} (${file.size} bytes)`);
             try {
-                // Generate unique filename
                 const filename = `${Date.now()}-${FileValidator.sanitizeFilename(file.originalname)}`;
                 console.log(`📝 Generated filename: ${filename}`);
-
-                // **ACTUAL UPLOAD TO VERCEL BLOB STORAGE**
                 const blobResult = await blobService.uploadFile(file.buffer, filename);
 
-                // Verify upload result
                 if (!blobResult.success || !blobResult.url) {
                     throw new Error('Blob upload returned invalid result');
                 }
@@ -295,7 +305,7 @@ app.post('/api/upload', upload.array('files'), async (req, res) => { // CHANGED 
 
                 console.log(`✅ Vercel Blob upload successful for ${file.originalname}:`, {
                     url: blobResult.url,
-                    pathname: blobResult.pathname, // Use pathname for more consistent logging
+                    pathname: blobResult.pathname,
                     size: blobResult.size
                 });
 
@@ -314,40 +324,23 @@ app.post('/api/upload', upload.array('files'), async (req, res) => { // CHANGED 
                     filename: file.originalname,
                     size: file.size
                 });
-
-                // Fail the entire job if any file fails to upload
                 const errorMsg = `Upload failed for ${file.originalname}: ${uploadError.message}`;
-                jobQueue.updateJob(jobId, {
-                    status: 'failed',
-                    message: errorMsg,
-                    progress: 0,
-                    error: errorMsg
-                });
-
-                return res.status(500).json({
-                    success: false,
-                    error: `One or more files failed to upload: ${uploadError.message}`,
-                    jobId: jobId
-                });
+                jobQueue.updateJob(jobId, { status: 'failed', message: errorMsg, progress: 0, error: errorMsg });
+                return res.status(500).json({ success: false, error: `One or more files failed to upload: ${uploadError.message}`, jobId: jobId });
             }
         }
 
-        // Update job status - all files uploaded successfully
         jobQueue.updateJob(jobId, {
             status: 'uploaded',
             message: `All ${files.length} files uploaded successfully to Vercel Blob Storage!`,
             progress: 50,
-            data: {
-                ...jobQueue.getJob(jobId).data, // Preserve existing data
-                uploadedFiles: uploadedFileDetails
-            }
+            data: { ...jobQueue.getJob(jobId).data, uploadedFiles: uploadedFileDetails }
         });
 
         console.log(`🎯 Attempting backend processing integration for ${blobUrls.length} files...`);
 
-        // Try backend processing integration
         let processingResult = { job_id: `fallback_${jobId}` };
-        if (backendClient) { // This backendClient is correctly null if BACKEND_API_URL is missing
+        if (backendClient) {
             try {
                 jobQueue.updateJob(jobId, {
                     status: 'processing',
@@ -355,25 +348,22 @@ app.post('/api/upload', upload.array('files'), async (req, res) => { // CHANGED 
                     progress: 60
                 });
 
-                // Pass the array of blob URLs
                 processingResult = await backendClient.triggerProcessing(
-                    blobUrls, // Pass the array of URLs
+                    blobUrls,
                     topic.trim()
                 );
 
                 console.log('✅ Backend processing triggered:', processingResult);
             } catch (backendError) {
                 console.warn('⚠️ Backend processing failed, continuing without backend:', backendError.message);
-                // Even if backend fails, we still consider the blob upload a success
-                // and report a 'completed' job for the frontend, but with a warning.
                 jobQueue.updateJob(jobId, {
-                    status: 'completed_with_warning', // New status for partial success
+                    status: 'completed_with_warning',
                     message: 'Backend processing skipped/failed, files uploaded but not fully processed.',
-                    progress: 90, // Indicate it's not fully 100% processed as intended by backend
+                    progress: 90,
                     error: `Backend processing failed: ${backendError.message}`
                 });
 
-                return res.status(202).json({ // Return Accepted, not 500, since files are uploaded
+                return res.status(202).json({
                     success: true,
                     jobId: jobId,
                     backendJobId: processingResult.job_id,
@@ -384,18 +374,16 @@ app.post('/api/upload', upload.array('files'), async (req, res) => { // CHANGED 
             }
         } else {
             console.log('ℹ️ Backend client not configured, skipping backend processing');
-            // If backend client is not configured, complete the job immediately
             jobQueue.updateJob(jobId, {
-                status: 'completed', // Or 'completed_without_backend'
+                status: 'completed',
                 message: 'Files uploaded to Vercel Blob Storage. Backend processing skipped (not configured).',
                 progress: 100,
                 result: {
-                    // For multiple files, this is a placeholder. Actual backend would return relevant output.
                     files: uploadedFileDetails.map((f, i) => ({
                         id: `original_${i+1}`,
                         name: `Original: ${f.originalName}`,
                         type: 'original',
-                        blobUrl: f.blobUrl // Link to the original uploaded blob
+                        blobUrl: f.blobUrl
                     })),
                     originalFilenames: uploadedFileDetails.map(f => f.originalName)
                 }
@@ -413,104 +401,53 @@ app.post('/api/upload', upload.array('files'), async (req, res) => { // CHANGED 
             return res.json(response);
         }
 
-        // Update job with backend job ID
         jobQueue.updateJob(jobId, {
             status: 'processing',
             message: 'Processing documents...',
             progress: 70,
-            data: {
-                ...jobQueue.getJob(jobId).data,
-                backendJobId: processingResult.job_id
-            }
+            data: { ...jobQueue.getJob(jobId).data, backendJobId: processingResult.job_id }
         });
 
-        // Simulate processing completion for demo (replace with real backend integration)
         setTimeout(() => {
             jobQueue.updateJob(jobId, {
                 status: 'completed',
                 message: 'Processing completed successfully!',
                 progress: 100,
                 result: {
-                    // This 'files' array would typically come from the backend's processing result.
-                    // If multiple exams are generated, this structure needs to reflect that.
-                    // For now, assuming either a single consolidated output or mock data.
                     files: [
                         { id: 'questions', name: 'Question Paper', type: 'questions', examId: 'latest' },
                         { id: 'answers', name: 'Model Answers', type: 'answers', examId: 'latest' },
                         { id: 'marking', name: 'Marking Scheme', type: 'marking', examId: 'latest' }
                     ],
-                    blobUrls: blobUrls, // Changed to blobUrls for consistency
+                    blobUrls: blobUrls,
                     originalFilenames: files.map(f => f.originalname)
                 }
             });
             console.log(`✅ Job ${jobId} completed successfully`);
         }, 3000);
 
-        // Return successful response
         const response = {
             success: true,
             jobId: jobId,
             backendJobId: processingResult.job_id,
-            blobUrls: blobUrls, // Changed to blobUrls
+            blobUrls: blobUrls,
             uploadDetails: uploadedFileDetails,
             message: 'Files uploaded to Vercel Blob Storage and processing started'
         };
 
-        console.log('✅ Upload successful, sending response:', {
-            jobId: response.jobId,
-            blobUrls: response.blobUrls
-        });
-
+        console.log('✅ Upload successful, sending response:', { jobId: response.jobId, blobUrls: response.blobUrls });
         res.json(response);
 
     } catch (error) {
-        console.error('❌ Upload endpoint error:', {
-            message: error.message,
-            stack: error.stack,
-            timestamp: new Date().toISOString()
-        });
-
-        // Try to get jobId from current context if available to update it
+        console.error('❌ Upload endpoint error:', { message: error.message, stack: error.stack, timestamp: new Date().toISOString() });
         let currentJobId = null;
-        try {
-            // This is a bit tricky to get the jobId in a general catch block
-            // if the error occurred *before* jobId was assigned or updated.
-            // For now, rely on previous updates.
-            if (res.locals && res.locals.jobId) { // If you set locals earlier
-                currentJobId = res.locals.jobId;
-            }
-        } catch (e) { /* ignore */ }
-
+        try { if (res.locals && res.locals.jobId) { currentJobId = res.locals.jobId; } } catch (e) { /* ignore */ }
         res.status(500).json({
             success: false,
             error: error.message || 'Upload failed',
             details: process.env.NODE_ENV === 'development' ? error.stack : undefined,
             timestamp: new Date().toISOString(),
-            jobId: currentJobId // Might be null if error before job creation
-        });
-    }
-});
-
-// List exams endpoint with error handling
-app.get('/api/exams', async (req, res) => {
-    try {
-        console.log('📋 Listing exams...');
-
-        if (!backendClient) { // Use the correctly initialized backendClient
-            console.log('ℹ️ Backend client not configured, returning empty list');
-            return res.json([]);
-        }
-
-        const exams = await backendClient.listExams();
-        console.log(`✅ Retrieved ${exams.length} exams`);
-        res.json(exams);
-
-    } catch (error) {
-        console.error('❌ List exams error:', error);
-        res.status(500).json({
-            error: error.message,
-            fallback: [],
-            timestamp: new Date().toISOString()
+            jobId: currentJobId
         });
     }
 });
@@ -527,10 +464,10 @@ app.get('/', (req, res) => {
         endpoints: [
             'GET /health - Basic health check',
             'GET /api/health - Detailed health check',
+            'GET /api/config - Frontend configuration (Supabase keys etc.)', // Added to endpoints list
             'POST /api/upload - Upload and process documents',
             'GET /api/status?jobId={id} - Check processing status',
-            'GET /api/download?file={id} - Download processed files',
-            'GET /api/exams - List available exams'
+            'GET /api/download?file={id} - Download processed files'
         ],
         services: {
             blob_storage: blobService ? 'available' : 'unavailable',
@@ -552,7 +489,7 @@ app.use((error, req, res, next) => {
     if (error.code === 'LIMIT_FILE_SIZE') {
         return res.status(400).json({
             success: false,
-            error: 'File too large. Maximum size is 50MB per file.', // Clarified message
+            error: 'File too large. Maximum size is 50MB per file.',
             maxSize: '50MB'
         });
     }
@@ -560,8 +497,8 @@ app.use((error, req, res, next) => {
     if (error.code === 'LIMIT_FILE_COUNT') {
         return res.status(400).json({
             success: false,
-            error: 'Too many files. Only ' + upload.limits.files + ' files allowed.', // Dynamic message
-            maxFiles: upload.limits.files // Provide the configured limit
+            error: 'Too many files. Only ' + upload.limits.files + ' files allowed.',
+            maxFiles: upload.limits.files
         });
     }
 
@@ -592,10 +529,10 @@ app.use((req, res) => {
             'GET /',
             'GET /health',
             'GET /api/health',
+            'GET /api/config', // Added to 404 response
             'POST /api/upload',
             'GET /api/status',
-            'GET /api/download',
-            'GET /api/exams'
+            'GET /api/download'
         ],
         message: 'The requested endpoint does not exist. Please check the available endpoints above.'
     });

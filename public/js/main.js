@@ -22,6 +22,9 @@ document.addEventListener('DOMContentLoaded', function() {
   // Check server health
   checkServerHealth();
 
+  // NEW: Call the function to load exam history when the page loads
+  loadExamHistory();
+
   console.log('All systems ready!');
 });
 
@@ -199,6 +202,69 @@ async function checkServerHealth() {
     Utils.showNotification('Unable to connect to server', 'error');
   }
 }
+
+// NEW: Function to fetch and render past exams (MODIFIED TO USE SUPABASE DIRECTLY)
+async function loadExamHistory() {
+    const examListElement = document.getElementById('exam-list');
+    const examHistorySection = document.getElementById('exam-history-section');
+    if (!examListElement || !examHistorySection) {
+        console.warn('Elements for exam history not found. Skipping loadExamHistory.');
+        return;
+    }
+
+    Utils.showElement('exam-history-section'); // Show the section
+    Utils.updateHTML('exam-list', '<p>Loading past exams from Supabase...</p>'); // Initial loading message
+
+    try {
+        const { data: exams, error } = await Utils.fetchExamsFromSupabase(); // Use new utility function
+
+        if (error) {
+            throw error; // Propagate error for catch block
+        }
+
+        if (exams.length === 0) {
+            Utils.updateHTML('exam-list', '<p>No generated exams found yet. Upload a document to create one!</p>');
+            return;
+        }
+
+        let examListHtml = '';
+        exams.forEach(exam => {
+            // Assume 'exam' object from Supabase contains 'id', 'title', 'topic', 'created_at'
+            // The 'id' column from public.generated_exams table is used as examId for downloads
+            const examId = exam.id;
+            const title = Utils.escapeHtml(exam.title || 'Untitled Exam');
+            const topic = Utils.escapeHtml(exam.topic || 'N/A');
+            const createdAt = Utils.formatDate(exam.created_at);
+
+            examListHtml += `
+                <li class="exam-item">
+                    <h4>${title}</h4>
+                    <p><strong>Topic:</strong> ${topic}</p>
+                    <p><strong>Generated On:</strong> ${createdAt}</p>
+                    <div class="exam-actions">
+                        <a href="/api/download?examId=${examId}&type=questions" class="btn btn-sm download-btn" download="${examId}_questions.pdf">Questions</a>
+                        <a href="/api/download?examId=${examId}&type=answers" class="btn btn-sm download-btn" download="${examId}_answers.pdf">Answers</a>
+                        <a href="/api/download?examId=${examId}&type=marking" class="btn btn-sm download-btn" download="${examId}_marking.pdf">Marking Scheme</a>
+                    </div>
+                </li>
+            `;
+        });
+        Utils.updateHTML('exam-list', examListHtml);
+
+        // Optional: Add click event listeners for notification when a download starts
+        document.querySelectorAll('#exam-history-section .download-btn').forEach(button => {
+            button.addEventListener('click', () => {
+                Utils.showNotification(`Initiating download for "${button.textContent}"`, 'info');
+            });
+        });
+
+    } catch (error) {
+        console.error('❌ Error fetching exam history:', error);
+        Utils.updateHTML('exam-list', `<p class="error-message">Failed to load exam history: ${Utils.escapeHtml(error.message)}</p>`);
+        Utils.showNotification('Failed to load past exams from Supabase.', 'error');
+    }
+}
+
 
 // Handle page unload
 window.addEventListener('beforeunload', function(e) {

@@ -60,3 +60,91 @@ button:disabled {
     opacity: 0.6;
     cursor: not-allowed;
 }
+
+/* Add the following styles for the new exam history section */
+.exam-history-section {
+    background-color: #ffffff;
+    padding: 25px;
+    border-radius: 8px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+    margin-top: 30px;
+}
+
+.exam-history-section h3 {
+    font-size: 1.8em;
+    color: #333;
+    margin-bottom: 20px;
+    border-bottom: 2px solid #eee;
+    padding-bottom: 10px;
+}
+
+.exam-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.exam-item {
+    background-color: #f9f9f9;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    padding: 15px 20px;
+    margin-bottom: 15px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    transition: all 0.2s ease-in-out;
+}
+
+.exam-item:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    transform: translateY(-2px);
+}
+
+.exam-item h4 {
+    font-size: 1.3em;
+    color: #0056b3;
+    margin: 0;
+    padding-bottom: 5px;
+    border-bottom: 1px dashed #e9ecef;
+}
+
+.exam-item p {
+    margin: 0;
+    font-size: 0.95em;
+    color: #555;
+}
+
+.exam-actions {
+    margin-top: 10px;
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap; /* Allows buttons to wrap on smaller screens */
+}
+
+.exam-actions .btn-sm {
+    padding: 8px 15px;
+    font-size: 0.85em;
+    border-radius: 5px;
+    text-decoration: none;
+    text-align: center;
+    transition: background-color 0.2s ease;
+}
+
+.exam-actions .btn-sm.download-btn {
+    background-color: #007bff;
+    color: white;
+    border: 1px solid #007bff;
+}
+
+.exam-actions .btn-sm.download-btn:hover {
+    background-color: #0056b3;
+    border-color: #0056b3;
+}
+
+.error-message {
+    color: #dc3545;
+    font-weight: bold;
+    text-align: center;
+    margin-top: 20px;
+}
