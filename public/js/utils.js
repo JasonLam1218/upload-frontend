@@ -258,7 +258,8 @@ const Utils = {
       try {
           const { data, error } = await supabaseClient
               .from('generated_exams')
-              .select('id, title, topic, created_at')
+              // MODIFIED: Added 'exam_json' to the select statement to retrieve full exam data
+              .select('id, title, topic, created_at, exam_json') 
               .order('created_at', { ascending: false });
 
           if (error) {
