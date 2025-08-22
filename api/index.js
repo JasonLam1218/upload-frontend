@@ -309,7 +309,13 @@ app.post('/api/upload', upload.array('files'), async (req, res) => {
                     size: blobResult.size
                 });
 
-                blobUrls.push(blobResult.url);
+                blobUrls.push({
+                    url: blobResult.url,
+                    original_filename: file.originalname, // Add original filename
+                    // You can add a 'category' here if you want to explicitly pass it from the frontend
+                    // e.g., category: 'uploaded_document', or infer based on file name patterns.
+                    // For simplicity, we'll let the Python backend determine content_type based on filename.
+                });
                 uploadedFileDetails.push({
                     originalName: file.originalname,
                     blobUrl: blobResult.url,
@@ -353,6 +359,7 @@ app.post('/api/upload', upload.array('files'), async (req, res) => {
                     topic.trim()
                 );
 
+                // failed here 21/8/2025
                 console.log('✅ Backend processing triggered:', processingResult);
             } catch (backendError) {
                 console.warn('⚠️ Backend processing failed, continuing without backend:', backendError.message);

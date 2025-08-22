@@ -229,12 +229,25 @@ async function loadExamHistory() {
 
         let examListHtml = '';
         exams.forEach(exam => {
-            // Assume 'exam' object from Supabase contains 'id', 'title', 'topic', 'created_at'
-            // The 'id' column from public.generated_exams table is used as examId for downloads
-            const examId = exam.id;
+            const examJson = exam.exam_json;
+            // NEW: Get Vercel Blob URLs from the exam_metadata within exam_json
+            // The backend is saving these with types like "question_paper", "model_answers", "marking_scheme"
+            const vercelBlobUrls = examJson?.exam_metadata?.vercel_blob_urls || []; 
+
+            const examId = exam.id; // Supabase row ID
             const title = Utils.escapeHtml(exam.title || 'Untitled Exam');
             const topic = Utils.escapeHtml(exam.topic || 'N/A');
             const createdAt = Utils.formatDate(exam.created_at);
+
+            // Helper to find the correct file URL by its type key
+            const getFileUrl = (typeKey) => {
+                const fileInfo = vercelBlobUrls.find(f => f.type === typeKey);
+                return fileInfo ? fileInfo.url : null;
+            };
+
+            const questionsUrl = getFileUrl('question_paper');
+            const answersUrl = getFileUrl('model_answers');
+            const markingUrl = getFileUrl('marking_scheme');
 
             examListHtml += `
                 <li class="exam-item">
@@ -242,9 +255,25 @@ async function loadExamHistory() {
                     <p><strong>Topic:</strong> ${topic}</p>
                     <p><strong>Generated On:</strong> ${createdAt}</p>
                     <div class="exam-actions">
-                        <a href="/api/download?examId=${examId}&type=questions" class="btn btn-sm download-btn" download="${examId}_questions.pdf">Questions</a>
-                        <a href="/api/download?examId=${examId}&type=answers" class="btn btn-sm download-btn" download="${examId}_answers.pdf">Answers</a>
-                        <a href="/api/download?examId=${examId}&type=marking" class="btn btn-sm download-btn" download="${examId}_marking.pdf">Marking Scheme</a>
+            `;
+            // Prioritize Vercel Blob URLs, fallback to /api/download if not available/valid
+            if (questionsUrl && questionsUrl.startsWith('http')) { 
+                examListHtml += `<a href="${questionsUrl}" class="btn btn-sm download-btn" download="${examId}_questions.pdf">Questions</a>`;
+            } else {
+                examListHtml += `<a href="/api/download?examId=${examId}&type=questions" class="btn btn-sm download-btn" download="${examId}_questions.pdf">Questions (Fallback)</a>`;
+            }
+            if (answersUrl && answersUrl.startsWith('http')) {
+                examListHtml += `<a href="${answersUrl}" class="btn btn-sm download-btn" download="${examId}_answers.pdf">Answers</a>`;
+            } else {
+                examListHtml += `<a href="/api/download?examId=${examId}&type=answers" class="btn btn-sm download-btn" download="${examId}_answers.pdf">Answers (Fallback)</a>`;
+            }
+            if (markingUrl && markingUrl.startsWith('http')) {
+                examListHtml += `<a href="${markingUrl}" class="btn btn-sm download-btn" download="${examId}_marking.pdf">Marking Scheme</a>`;
+            } else {
+                examListHtml += `<a href="/api/download?examId=${examId}&type=marking" class="btn btn-sm download-btn" download="${examId}_marking.pdf">Marking Scheme (Fallback)</a>`;
+            }
+
+            examListHtml += `
                     </div>
                 </li>
             `;
@@ -253,8 +282,14 @@ async function loadExamHistory() {
 
         // Optional: Add click event listeners for notification when a download starts
         document.querySelectorAll('#exam-history-section .download-btn').forEach(button => {
-            button.addEventListener('click', () => {
-                Utils.showNotification(`Initiating download for "${button.textContent}"`, 'info');
+            button.addEventListener('click', (event) => {
+                // Adjust notification based on whether it's a direct Vercel Blob link or proxied by Node.js server
+                if (button.href.includes('/api/download')) {
+                    Utils.showNotification(`Initiating download for "${button.textContent}" via backend.`, 'info');
+                    // No event.preventDefault() here, let the browser handle the /api/download request
+                } else {
+                    Utils.showNotification(`Initiating direct download for "${button.textContent}".`, 'info');
+                }
             });
         });
 

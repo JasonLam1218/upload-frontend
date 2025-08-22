@@ -90,7 +90,7 @@ const Upload = {
         this.currentJobId = result.jobId;
 
         // Show detailed upload success
-        const uploadedBlobUrls = result.blobUrls ? result.blobUrls.join(', ') : 'N/A'; // For multiple files
+        const uploadedBlobUrls = result.blobUrls ? result.blobUrls.map(f => f.url).join(', ') : 'N/A'; // For multiple files
         Utils.updateContent('status-message',
           `✅ Files uploaded successfully to Vercel Blob Storage!\n📎 Blob URLs: ${uploadedBlobUrls}\n🟢 Processing started...`
         );
@@ -146,6 +146,14 @@ const Upload = {
         Utils.showNotification('Processing completed!', 'success');
         this.showResults(status.files, status.examId); // This might need adjustment if multiple examId's are returned
         this.currentJobId = null;
+        
+        // MODIFICATION START: Trigger loadExamHistory after successful completion
+        // `loadExamHistory` is a global function from main.js
+        if (typeof loadExamHistory === 'function') {
+            await loadExamHistory(); // Reload the list of generated exams
+            console.log('✅ Exam history reloaded after successful generation.');
+        }
+        // MODIFICATION END
 
       } else if (status.error) {
         Utils.updateContent('status-message', 'Processing failed: ' + status.error);
